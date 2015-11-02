@@ -10,7 +10,6 @@ import (
 type Graph struct {
 	Name    string
 	Title   string
-	Args    map[string]interface{}
 	Configs map[string]interface{}
 	Values  map[string]interface{}
 
@@ -71,25 +70,11 @@ func (m *Graph) fetch() string {
 func (m *Graph) config() string {
 	lines := make([]string, 0, 10)
 
-	args := []string{}
 	if m.Title != "" {
-		args = append(args, fmt.Sprintf("graph_args --title \"%s\"", m.Title))
+		lines = append(lines, fmt.Sprintf("graph_title \"%s\"", m.Title))
 	} else {
-		args = append(args, fmt.Sprintf("graph_args --title \"%s\"", m.Name))
+		lines = append(lines, fmt.Sprintf("graph_title \"%s\"", m.Name))
 	}
-
-	for k, v := range m.Args {
-		switch v.(type) {
-		case string:
-			args = append(args, fmt.Sprintf("--%s \"%v\"", k, v))
-		case int, uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64:
-			args = append(args, fmt.Sprintf("--%s %v", k, v))
-		default:
-			log.Println("bad type")
-		}
-
-	}
-	lines = append(lines, strings.Join(args, " "))
 
 	for k, v := range m.Configs {
 		lines = append(lines, fmt.Sprintf("%s %v", k, v))
