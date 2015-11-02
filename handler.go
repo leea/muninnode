@@ -1,28 +1,15 @@
-package evmn
+package muninnode
 
 import (
 	"errors"
-	"expvar"
 	"sort"
 	"strings"
-	"unicode"
 )
 
 var (
 	errUnknownCmd = errors.New("Unknown command")
 	errUnknownSvc = errors.New("Unknown service")
 )
-
-func kk(k string) string {
-	if k == "" {
-		return k
-	}
-	k = strings.Replace(k, ".", "_", -1)
-	if !unicode.IsLetter(rune(k[0])) {
-		return "_" + k
-	}
-	return k
-}
 
 func handler(command string) (r string, err error) {
 	fields := strings.Fields(command)
@@ -34,16 +21,9 @@ func handler(command string) (r string, err error) {
 
 	case "list":
 		keys := []string{}
-		seen := map[string]bool{}
-		do(func(kv expvar.KeyValue) {
-			g := strings.Split(kv.Key, ":")[0]
-			f := strings.Split(g, ".")[0]
-			if seen[f] {
-				return
-			}
-			keys = append(keys, f)
-			seen[f] = true
-		})
+		for _, m := range registry {
+			keys = append(keys, m.Name)
+		}
 		sort.Strings(keys)
 		return strings.Join(keys, " "), nil
 
@@ -56,11 +36,12 @@ func handler(command string) (r string, err error) {
 		}
 		key := fields[1]
 
-		lines := []string{}
-		fetch(key, func(k, v string) {
-			lines = append(lines, kk(k)+".value "+v)
-		})
-		return strings.Join(lines, "\n") + "\n.", nil
+		for _, m := range registry {
+			if m.Name == key {
+				return m.fetch(), nil
+			}
+		}
+		return "", errUnknownSvc
 
 	case "config":
 		if len(fields) < 2 {
@@ -68,21 +49,12 @@ func handler(command string) (r string, err error) {
 		}
 		key := fields[1]
 
-		lines := []string{
-			"graph_title " + key,
-			"graph_category expvar",
-			"graph_args --base 1000 --units=si",
+		for _, m := range registry {
+			if m.Name == key {
+				return m.config(), nil
+			}
 		}
-
-		fetch(key, func(k0, v string) {
-			k := kk(k0)
-			lines = append(lines,
-				k+".label "+k0,
-				k+".min 0",
-				k+".type DERIVE",
-			)
-		})
-		return strings.Join(lines, "\n") + "\n.", nil
+		return "", errUnknownSvc
 
 	case "cap":
 		return "multigraph", nil
