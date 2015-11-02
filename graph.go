@@ -10,6 +10,7 @@ import (
 type Graph struct {
 	Name    string
 	Title   string
+	Globals map[string]interface{}
 	Configs map[string]interface{}
 	Values  map[string]interface{}
 
@@ -74,6 +75,10 @@ func (m *Graph) config() string {
 		lines = append(lines, fmt.Sprintf("graph_title \"%s\"", m.Title))
 	} else {
 		lines = append(lines, fmt.Sprintf("graph_title \"%s\"", m.Name))
+	}
+
+	for k, v := range m.Globals {
+		lines = append(lines, fmt.Sprintf("%s %v", k, v))
 	}
 
 	for k, v := range m.Configs {

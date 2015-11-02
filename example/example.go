@@ -14,8 +14,10 @@ func main() {
 	mg := &muninnode.Graph{
 		Name:  "alloc",
 		Title: "Memory Allocated",
+		Globals: map[string]interface{}{
+			"graph_args": "--base 1024",
+		},
 		Configs: map[string]interface{}{
-			"graph_args":  "--base 1024",
 			"alloc.label": "label",
 			"alloc.min":   "0",
 			"alloc.type":  "GAUGE",
