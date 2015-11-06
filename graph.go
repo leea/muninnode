@@ -26,7 +26,7 @@ func NewGraph(name string, title string, config map[string]interface{}, pf func(
 }
 func (m *Graph) AddValue(name string, getf func() interface{}, configs map[string]interface{}) {
 
-	m.values = append(m.values, &Value{name, getf, configs})
+	m.values = append(m.values, &Value{muninKey(name), getf, configs})
 }
 func muninKey(s string) string {
 	var key string
