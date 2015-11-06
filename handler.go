@@ -22,7 +22,7 @@ func handler(command string) (r string, err error) {
 	case "list":
 		keys := []string{}
 		for _, m := range registry {
-			keys = append(keys, m.Name)
+			keys = append(keys, m.name)
 		}
 		sort.Strings(keys)
 		return strings.Join(keys, " "), nil
@@ -37,7 +37,7 @@ func handler(command string) (r string, err error) {
 		key := fields[1]
 
 		for _, m := range registry {
-			if m.Name == key {
+			if m.name == key {
 				return m.fetch(), nil
 			}
 		}
@@ -50,7 +50,7 @@ func handler(command string) (r string, err error) {
 		key := fields[1]
 
 		for _, m := range registry {
-			if m.Name == key {
+			if m.name == key {
 				return m.config(), nil
 			}
 		}

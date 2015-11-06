@@ -9,24 +9,23 @@ import (
 
 func main() {
 	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
 
-	mg := &muninnode.Graph{
-		Name:  "alloc",
-		Title: "Memory Allocated",
-		Globals: map[string]interface{}{
+	mg := muninnode.NewGraph(
+		"alloc",
+		"Memory Allocated",
+		map[string]interface{}{
 			"graph_args": "--base 1024",
 		},
-		Configs: map[string]interface{}{
-			"alloc.label": "label",
-			"alloc.min":   "0",
-			"alloc.type":  "GAUGE",
-		},
-		Values: map[string]interface{}{
-			"alloc": &ms.Alloc,
-		},
-		Gather: func() { runtime.ReadMemStats(&ms) },
-	}
+		func() {
+			runtime.ReadMemStats(&ms)
+		})
+	mg.AddValue("alloc",
+		func() interface{} { return ms.Alloc },
+		map[string]interface{}{
+			"min":  "0",
+			"type": "GAUGE",
+		})
+
 	muninnode.Register(mg)
 
 	for {

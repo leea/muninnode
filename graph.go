@@ -8,15 +8,26 @@ import (
 )
 
 type Graph struct {
-	Name    string
-	Title   string
-	Globals map[string]interface{}
-	Configs map[string]interface{}
-	Values  map[string]interface{}
-
-	Gather func() // Call this function prior to calling fetch
+	name      string
+	title     string
+	configs   map[string]interface{}
+	values    []*Value
+	prefetchf func()
 }
 
+func NewGraph(name string, title string, config map[string]interface{}, pf func()) *Graph {
+	return &Graph{
+		name,
+		title,
+		config,
+		[]*Value{},
+		pf,
+	}
+}
+func (m *Graph) AddValue(name string, getf func() interface{}, configs map[string]interface{}) {
+
+	m.values = append(m.values, &Value{name, getf, configs})
+}
 func muninKey(s string) string {
 	var key string
 	// Munin does not like keys that start with numbers
@@ -30,39 +41,13 @@ func muninKey(s string) string {
 }
 
 func (m *Graph) fetch() string {
-	if m.Gather != nil {
-		m.Gather()
+	if m.prefetchf != nil {
+		m.prefetchf()
 	}
-
 	lines := make([]string, 0, 10)
 
-	for k, v := range m.Values {
-		switch v.(type) {
-		case *int:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*int)))
-		case *uint8:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*uint8)))
-		case *uint16:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*uint16)))
-		case *uint32:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*uint32)))
-		case *uint64:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*uint64)))
-		case *int8:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*int8)))
-		case *int16:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*int16)))
-		case *int32:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*int32)))
-		case *int64:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*int64)))
-		case *float32:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*float32)))
-		case *float64:
-			lines = append(lines, fmt.Sprintf("%s.value %v", k, *v.(*float64)))
-		default:
-			log.Println("value must be a pointer to builtin numeric type")
-		}
+	for _, v := range m.values {
+		lines = append(lines, v.fetch())
 	}
 
 	return strings.Join(lines, "\n") + "\n."
@@ -71,19 +56,49 @@ func (m *Graph) fetch() string {
 func (m *Graph) config() string {
 	lines := make([]string, 0, 10)
 
-	if m.Title != "" {
-		lines = append(lines, fmt.Sprintf("graph_title \"%s\"", m.Title))
+	if m.title != "" {
+		lines = append(lines, fmt.Sprintf("graph_title %s", m.title))
 	} else {
-		lines = append(lines, fmt.Sprintf("graph_title \"%s\"", m.Name))
+		lines = append(lines, fmt.Sprintf("graph_title %s", m.name))
 	}
 
-	for k, v := range m.Globals {
+	for k, v := range m.configs {
 		lines = append(lines, fmt.Sprintf("%s %v", k, v))
 	}
 
-	for k, v := range m.Configs {
-		lines = append(lines, fmt.Sprintf("%s %v", k, v))
+	for _, v := range m.values {
+		lines = append(lines, v.config()...)
 	}
 
 	return strings.Join(lines, "\n") + "\n."
+}
+
+type Value struct {
+	name     string
+	getValue func() interface{} //Must return builtin numeric type: int, uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64
+	configs  map[string]interface{}
+}
+
+func (v *Value) fetch() string {
+
+	value := v.getValue()
+	switch value.(type) {
+	case int, uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64:
+		return fmt.Sprintf("%s.value %v", v.name, value)
+	default:
+		log.Println("value must be a pointer to builtin numeric type")
+		return "\n."
+	}
+
+}
+
+func (v *Value) config() []string {
+	lines := make([]string, 0, 5)
+	lines = append(lines, fmt.Sprintf("%s.label %v", v.name, v.name))
+
+	for k, vv := range v.configs {
+		lines = append(lines, fmt.Sprintf("%s.%s %v", v.name, k, vv))
+	}
+
+	return lines
 }
