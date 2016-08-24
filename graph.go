@@ -83,10 +83,10 @@ func (v *Value) fetch() string {
 
 	value := v.getValue()
 	switch value.(type) {
-	case int, uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64:
+	case int, uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64, string:
 		return fmt.Sprintf("%s.value %v", v.name, value)
 	default:
-		log.Println("value must be a pointer to builtin numeric type")
+		log.Println("value must be a pointer to builtin numeric type or string")
 		return "\n."
 	}
 
